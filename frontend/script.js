@@ -9,26 +9,7 @@ const chatMessages = document.getElementById("chatMessages");
 const BACKEND_URL = "https://document-question-answering-system-rag.onrender.com";
 
 
-/* Restore uploaded document status */
 
-const savedFileName =
-    localStorage.getItem("uploadedFileName");
-
-if (savedFileName) {
-
-    uploadStatus.innerHTML =
-        `📄 <strong>${savedFileName}</strong> uploaded successfully.<br>
-        You can now ask questions.`;
-
-    uploadStatus.style.color =
-        "#166534";
-
-    uploadStatus.style.background =
-        "#f0fdf4";
-
-    uploadStatus.style.display =
-        "block";
-}
 
 
 /* Upload document */
@@ -129,10 +110,7 @@ uploadButton.addEventListener("click", async () => {
 
         /* Save uploaded filename */
 
-        localStorage.setItem(
-            "uploadedFileName",
-            data.file_name
-        );
+       
 
 
         /* Show upload success */
