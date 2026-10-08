@@ -6,7 +6,7 @@ const questionInput = document.getElementById("questionInput");
 const askButton = document.getElementById("askButton");
 const chatMessages = document.getElementById("chatMessages");
 
-const BACKEND_URL = "http://127.0.0.1:5000";
+const BACKEND_URL = "https://document-question-answering-system-rag.onrender.com";
 
 
 /* Restore uploaded document status */
