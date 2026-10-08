@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Document QA - RAG</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Document Question Answering</h1>
+
+        <p class="subtitle">
+            Upload a PDF or TXT document and ask questions about it.
+        </p>
+
+        <div class="upload-section">
+
+            <input
+                type="file"
+                id="fileInput"
+                accept=".pdf,.txt"
+            >
+
+            <button
+                type="button"
+                id="uploadButton"
+            >
+                Upload Document
+            </button>
+
+            <div
+                id="uploadStatus"
+                class="upload-status"
+            ></div>
+
+        </div>
+
+        <div class="chat-section">
+
+            <div
+                id="chatMessages"
+                class="chat-messages"
+            >
+
+                <div class="message assistant">
+                    Upload a document to start asking questions.
+                </div>
+
+            </div>
+
+            <div class="chat-input">
+
+                <input
+                    type="text"
+                    id="questionInput"
+                    placeholder="Ask a question..."
+                >
+
+                <button
+                    type="button"
+                    id="askButton"
+                >
+                    Ask
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="script.js?v=4"></script>
+
+</body>
+
+</html>
