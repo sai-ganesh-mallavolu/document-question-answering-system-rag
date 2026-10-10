@@ -15,12 +15,15 @@ body {
     min-height: 100vh;
     min-height: 100dvh;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .container {
     width: 92%;
     max-width: 1100px;
-    margin: 12px auto;
+    margin: 0 auto;
 }
 
 /* Page heading */
