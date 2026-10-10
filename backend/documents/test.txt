@@ -1,0 +1,9 @@
+Python is a programming language used to build software and applications.
+
+Flask is a lightweight Python web framework used to create web applications and APIs.
+
+RAG stands for Retrieval-Augmented Generation and combines document retrieval with language generation.
+
+TF-IDF is a technique used to measure the importance of words in a collection of documents.
+
+Cosine similarity measures how similar two text vectors are based on their direction.

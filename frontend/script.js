@@ -110,7 +110,7 @@ uploadButton.addEventListener("click", async () => {
 
         /* Save uploaded filename */
 
-       
+
 
 
         /* Show upload success */

@@ -1,3 +1,4 @@
+
 import os
 
 from flask import Flask, request, jsonify
@@ -27,12 +28,17 @@ CORS(app)
 
 client = Groq(
     api_key=GROQ_API_KEY
-)
+) if GROQ_API_KEY else None
 
 
 # Configure upload folder
 
-UPLOAD_FOLDER = "documents"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+UPLOAD_FOLDER = os.path.join(
+    BASE_DIR,
+    "documents"
+)
 
 os.makedirs(
     UPLOAD_FOLDER,
@@ -45,6 +51,10 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 # Configure retrieval threshold
 
 SIMILARITY_THRESHOLD = 0.10
+
+NOT_FOUND_ANSWER = (
+    "I could not find the information in the provided documents."
+)
 
 
 # Store document data
@@ -208,13 +218,18 @@ def build_prompt(
     prompt = f"""
 You are a document question-answering assistant.
 
-Answer the user's question using only the provided document context.
+Answer the user's question using only the information
+explicitly supported by the document context.
 
-If the answer is not available in the document context,
-say that you could not find the information in the provided documents.
+If the context does not contain enough information
+to answer the question, respond with exactly:
+{NOT_FOUND_ANSWER}
 
 Do not use your general knowledge.
-Do not invent or assume information.
+Do not invent facts.
+Do not guess or infer missing information.
+If only part of the question is answered by the context,
+answer only that supported part.
 
 Document context:
 {context}
@@ -229,6 +244,12 @@ User question:
 # Generate answer using Groq
 
 def ask_groq(prompt):
+
+    if client is None:
+
+        raise RuntimeError(
+            "GROQ_API_KEY is missing from the environment."
+        )
 
     completion = client.chat.completions.create(
 
@@ -245,6 +266,37 @@ def ask_groq(prompt):
     )
 
     return completion.choices[0].message.content.strip()
+
+
+# Check whether the answer indicates missing information
+
+def is_not_found_answer(answer):
+
+    normalized_answer = answer.lower().strip()
+
+    normalized_answer = normalized_answer.replace(
+        "**",
+        ""
+    ).replace(
+        "*",
+        ""
+    ).replace(
+        "`",
+        ""
+    ).strip()
+
+    not_found_phrases = [
+        NOT_FOUND_ANSWER.lower(),
+        "the information is not available in the provided documents",
+        "the provided documents do not contain this information",
+        "the document does not provide this information",
+        "the context does not contain enough information"
+    ]
+
+    return any(
+        phrase in normalized_answer
+        for phrase in not_found_phrases
+    )
 
 
 # Check backend status
@@ -282,13 +334,17 @@ def upload_document():
             "error": "No file selected"
         }), 400
 
+    filename = os.path.basename(
+        file.filename
+    )
+
     allowed_extensions = {
         ".pdf",
         ".txt"
     }
 
     file_extension = os.path.splitext(
-        file.filename
+        filename
     )[1].lower()
 
     if file_extension not in allowed_extensions:
@@ -299,14 +355,26 @@ def upload_document():
 
     file_path = os.path.join(
         app.config["UPLOAD_FOLDER"],
-        file.filename
+        filename
     )
 
-    file.save(file_path)
+    try:
 
-    text = extract_text(
-        file_path
-    )
+        file.save(file_path)
+
+        text = extract_text(
+            file_path
+        )
+
+    except Exception as error:
+
+        app.logger.exception(
+            "Document processing failed"
+        )
+
+        return jsonify({
+            "error": "Could not read the document. Please check the file."
+        }), 400
 
     if not text.strip():
 
@@ -326,12 +394,12 @@ def upload_document():
 
     create_vectors(
         chunks,
-        file.filename
+        filename
     )
 
     return jsonify({
         "message": "Document uploaded and processed successfully",
-        "file_name": file.filename,
+        "file_name": filename,
         "chunks": len(chunks)
     }), 200
 
@@ -344,7 +412,7 @@ def upload_document():
 )
 def chat():
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
     if not data:
 
@@ -355,7 +423,15 @@ def chat():
     query = data.get(
         "question",
         ""
-    ).strip()
+    )
+
+    if not isinstance(query, str):
+
+        return jsonify({
+            "error": "Question must be text"
+        }), 400
+
+    query = query.strip()
 
     if not query:
 
@@ -371,27 +447,48 @@ def chat():
     if not retrieved_chunks:
 
         return jsonify({
-            "answer": "I could not find the information in the provided documents.",
+            "answer": NOT_FOUND_ANSWER,
             "source": None
         }), 200
 
-    prompt = build_prompt(
-        query,
-        retrieved_chunks
-    )
+    try:
 
-    answer = ask_groq(
-        prompt
-    )
+        prompt = build_prompt(
+            query,
+            retrieved_chunks
+        )
 
-    sources = list({
+        answer = ask_groq(
+            prompt
+        )
+
+    except Exception:
+
+        app.logger.exception(
+            "Answer generation failed"
+        )
+
+        return jsonify({
+            "error": "Could not generate an answer. Please try again."
+        }), 500
+
+    # Do not show a source when the answer is not found
+
+    if is_not_found_answer(answer):
+
+        return jsonify({
+            "answer": NOT_FOUND_ANSWER,
+            "source": None
+        }), 200
+
+    sources = sorted({
         item["source"]
         for item in retrieved_chunks
     })
 
     return jsonify({
         "answer": answer,
-        "source": ", ".join(sources)
+        "source": ", ".join(sources) if sources else None
     }), 200
 
 
